@@ -41,7 +41,7 @@ sp = int(0.9 * X.shape[0])
 Xtrain, Xtest, Ytrain, Ytest = X[0:sp], X[sp:], Y[0:sp], Y[sp:]
 lss = nn.MSELoss()
 batch_size = 1
-for step in range(100):
+
 
 
 
