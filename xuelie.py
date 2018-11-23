@@ -29,14 +29,20 @@ data = data.reshape(-1, 3)
 scaler = MinMaxScaler(feature_range=(0, 1), copy=False)
 data = scaler.fit_transform(data)
 X = np.zeros((data.shape[0]-NUM_TIMESTEPS, NUM_TIMESTEPS, data.shape[1]))
-Y = np.zeros((data.shape[0]-NUM_TIMESTEPS,data.shape[1]))
-
+Y = np.zeros((data.shape[0]-NUM_TIMESTEPS,15, data.shape[1]))
 
 
 for i in range(len(data) - NUM_TIMESTEPS - 1):
-    X[i] = data[i:i + NUM_TIMESTEPS]
-
-    Y[i] = data[i + NUM_TIMESTEPS + 1]
+    if len(data[i + NUM_TIMESTEPS :i + NUM_TIMESTEPS + 15])==15:
+        X[i] = data[i:i + NUM_TIMESTEPS]
+        Y[i] = data[i + NUM_TIMESTEPS :i + NUM_TIMESTEPS + 15]
 
 sp = int(0.9 * X.shape[0])
 Xtrain, Xtest, Ytrain, Ytest = X[0:sp], X[sp:], Y[0:sp], Y[sp:]
+lss = nn.MSELoss()
+batch_size = 1
+for step in range(100):
+
+
+
+
