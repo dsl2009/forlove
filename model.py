@@ -37,7 +37,7 @@ BATCH_SIZE = 1
 model = Sequential()
 model.add(LSTM(HIDDEN_SIZE, stateful=True,
     batch_input_shape=(BATCH_SIZE, NUM_TIMESTEPS, 3),
-    return_sequences=False))
+    return_sequences=True))
 model.add(Dense(3))
 model.compile(loss="mean_squared_error", optimizer="adam",
     metrics=["mean_squared_error"])
