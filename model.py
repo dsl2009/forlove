@@ -47,12 +47,12 @@ model.fit(Xtrain, Ytrain, epochs=10, batch_size=BATCH_SIZE,
     validation_data=(Xtest, Ytest),
     shuffle=False)
 
-x_test = data[-NUM_TIMESTEPS:]
+x_test = data[-(NUM_TIMESTEPS+15):-15]
 result = []
 for x in range(15):
     x_data = np.expand_dims(x_test[-NUM_TIMESTEPS:],0)
     resul = model.predict(x_data)
-    print(resul)
-    print(x_test[-15:])
-    x_test = np.vstack((x_test, resul))
 
+    x_test = np.vstack((x_test, resul))
+print(x_test[-15:])
+print(data[-15:])
