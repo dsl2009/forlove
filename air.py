@@ -21,7 +21,7 @@ print('SARIMAX: {} x {}'.format(pdq[2], seasonal_pdq[4]))
 for ix, x in enumerate(flow_group.count().index):
 
     d = df[df['district_code']==x]
-    ds = d[['date_dt', 'dwell' ]]
+    ds = d[['date_dt', 'flow_in' ]]
     ds = ds.set_index('date_dt')
     decomposition = sm.tsa.seasonal_decompose(ds, model='additive')
     fig = decomposition.plot()

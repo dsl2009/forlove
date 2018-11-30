@@ -9,15 +9,32 @@ import torch
 class RNN(torch.nn.Module):
     def __init__(self):
         super().__init__()
+        self.cnn = nn.Sequential(
+            nn.Conv1d(in_channels=1, out_channels=8, kernel_size=3, stride=2),
+            nn.ReLU(),
+            nn.Conv1d(in_channels=8, out_channels=16, kernel_size=3, stride=2),
+            nn.ReLU(),
+            nn.Conv1d(in_channels=16, out_channels=24, kernel_size=3, stride=2),
+            nn.ReLU(),
+            nn.Conv1d(in_channels=24, out_channels=24, kernel_size=3, stride=2),
+            nn.ReLU(),
+            nn.Conv1d(in_channels=24, out_channels=32, kernel_size=3, stride=2),
+            nn.ReLU(),
+        )
         self.rnn=torch.nn.LSTM(
-            input_size=3,
+            input_size=64,
             hidden_size=16,
             num_layers=1,
             batch_first=True
         )
-        self.liner = nn.Linear(16, 3)
+
+        self.liner = nn.Linear(16, 1)
 
     def forward(self,x):
+
+        x = self.cnn(x)
+        x = x.view(90,-1)
+        x = x.unsqueeze(0)
         output,(h_n,c_n)=self.rnn(x)
         x = output[:,-15:,:]
         x = self.liner(x)
@@ -25,29 +42,42 @@ class RNN(torch.nn.Module):
 
 
 NUM_TIMESTEPS = 90
-data = np.load('traget.npy')
-X = np.zeros((274-NUM_TIMESTEPS-15,NUM_TIMESTEPS,3))
-Y = np.zeros((274-NUM_TIMESTEPS-15,15, 3))
-print(data.shape)
-for i in range(data.shape[1] - NUM_TIMESTEPS - 15):
-    if data[10, i + NUM_TIMESTEPS :i + NUM_TIMESTEPS + 15].shape[0]==15:
-        X[i] = data[10, i:i + NUM_TIMESTEPS]
-        Y[i] = data[10, i + NUM_TIMESTEPS :i + NUM_TIMESTEPS + 15]
-print(np.where(Y==0))
-mean =[257.717463,    381.688098  , 381.688098]
-std = [389.969604 ,696.205022 , 692.336528]
-sp = int(0.9 * X.shape[0])
-Xtrain, Xtest, Ytrain, Ytest = X[0:sp], X[sp:], Y[0:sp], Y[sp:]
-print(Xtrain.shape)
-print(Ytrain.shape)
-mse = nn.MSELoss(size_average=False)
-batch_size = 1
-net = RNN()
-net.cuda()
-optimzer = torch.optim.Adam(net.parameters(), lr=0.001)
+mean = [257.717463, 381.688098, 381.688098]
+std = [389.969604, 696.205022, 692.336528]
+flow = np.load('trans.npy')
+
+flow = (flow- mean[1])/std[1]
+
+X = np.zeros((274-NUM_TIMESTEPS-15,NUM_TIMESTEPS,98))
+Y = np.zeros((274-NUM_TIMESTEPS-15,15, 1))
 
 
-def run():
+
+
+def run(indexes, is_flow_in=True):
+
+
+    for i in range(flow.shape[0] - NUM_TIMESTEPS - 15):
+        if flow[i + NUM_TIMESTEPS:i + NUM_TIMESTEPS + 15].shape[0] == 15:
+            if is_flow_in:
+                X[i] = flow[i:i + NUM_TIMESTEPS, indexes,:]
+                Y[i,:, 0] = np.sum(flow[i + NUM_TIMESTEPS:i + NUM_TIMESTEPS + 15, indexes, :],axis=1)
+            else:
+                X[i] = flow[i:i + NUM_TIMESTEPS,: ,indexes]
+                Y[i,:, 0] = np.sum(flow[i + NUM_TIMESTEPS:i + NUM_TIMESTEPS + 15, :, indexes], axis=1)
+
+
+    sp = int(0.9 * X.shape[0])
+    Xtrain, Xtest, Ytrain, Ytest = X[0:sp], X[sp:], Y[0:sp], Y[sp:]
+    print(Xtrain.shape)
+    print(Ytrain.shape)
+    mse = nn.MSELoss(size_average=False)
+    batch_size = 1
+    net = RNN()
+    net.cuda()
+    optimzer = torch.optim.Adam(net.parameters(), lr=0.001)
+
+
     state={'train_loss':100, 'test_loss':100, 'best_loss':100}
     def revert(dts):
         dts[:, 0] = dts[:, 0] * std[0] + mean[0]
@@ -62,6 +92,7 @@ def run():
         for k in range(Xtrain.shape[0]):
             ip = Xtrain[k:k + 1]
             target = Y[k:k + 1]
+            ip = np.transpose(ip, [1, 0, 2])
             ip = torch.from_numpy(ip).float()
             target = torch.from_numpy(target).float()
 
@@ -86,6 +117,7 @@ def run():
             for k in range(Xtest.shape[0]):
                 ip = Xtrain[k:k + 1]
                 target = Y[k:k + 1]
+                ip = np.transpose(ip, [1, 0, 2])
                 ip = torch.from_numpy(ip).float()
                 target = torch.from_numpy(target).float()
                 img, target = torch.autograd.Variable(ip.cuda()), torch.autograd.Variable(target.cuda())
@@ -106,15 +138,15 @@ def run():
             img, target = torch.autograd.Variable(ip.cuda()), torch.autograd.Variable(target.cuda())
             out = net(img)
             print(out.size())
-            print(out.cpu().detach().numpy()[0])
-            print(target.cpu().detach().numpy()[0])
+            print(revert(out.cpu().detach().numpy()[0]))
+            print(revert(target.cpu().detach().numpy()[0]))
             loss = mse(out, target)
 
     min_val_loss = 100
-    for step in range(100):
+    for step in range(1000):
         train()
         test()
-        pred()
+
         if min_val_loss>state['test_loss']:
             state['best_loss'] = state['test_loss']
             min_val_loss = state['test_loss']
@@ -122,7 +154,7 @@ def run():
         print(state)
 
 
-run()
+run(1)
 
 
 
