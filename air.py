@@ -18,6 +18,23 @@ print('SARIMAX: {} x {}'.format(pdq[1], seasonal_pdq[2]))
 print('SARIMAX: {} x {}'.format(pdq[2], seasonal_pdq[3]))
 print('SARIMAX: {} x {}'.format(pdq[2], seasonal_pdq[4]))
 
+
+def get_most():
+    global mod, results
+    for param in pdq:
+        for param_seasonal in seasonal_pdq:
+            try:
+                mod = sm.tsa.statespace.SARIMAX(ds,
+                                                order=param,
+                                                seasonal_order=param_seasonal,
+                                                enforce_stationarity=False,
+                                                enforce_invertibility=False)
+                results = mod.fit()
+                print('ARIMA{}x{}12 - AIC:{}'.format(param, param_seasonal, results.aic))
+            except:
+                continue
+
+
 for ix, x in enumerate(flow_group.count().index):
 
     d = df[df['district_code']==x]
@@ -30,18 +47,6 @@ for ix, x in enumerate(flow_group.count().index):
 
 
 
-for param in pdq:
-    for param_seasonal in seasonal_pdq:
-        try:
-            mod = sm.tsa.statespace.SARIMAX(ds,
-                                            order=param,
-                                            seasonal_order=param_seasonal,
-                                            enforce_stationarity=False,
-                                            enforce_invertibility=False)
-            results = mod.fit()
-            print('ARIMA{}x{}12 - AIC:{}'.format(param, param_seasonal, results.aic))
-        except:
-            continue
 
 mod = sm.tsa.statespace.SARIMAX(ds,
                                 order=(1, 0, 1),
@@ -65,7 +70,8 @@ ax.set_ylabel('Furniture Sales')
 plt.legend()
 plt.show()
 
-pred_uc = results.get_forecast(steps=100)
+pred_uc = results.get_forecast(steps=2)
+print(pred_uc)
 pred_ci = pred_uc.conf_int()
 ax = ds.plot(label='observed', figsize=(14, 7))
 pred_uc.predicted_mean.plot(ax=ax, label='Forecast')
